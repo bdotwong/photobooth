@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 
 # Set your project name
-cs50_final(final_project)
+project(cs50_final_project)
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -15,3 +15,8 @@ add_executable(my_project
     main.cpp
 )
 
+# Include directories for header files
+target_include_directories(my_project PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
+# Link libraries
+target_link_libraries(my_project wiringPi)
