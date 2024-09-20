@@ -10,7 +10,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_executable(my_project
     button.cpp
     camera.cpp
-    dotstar_led.cpp
     led.cpp
     main.cpp
 )
