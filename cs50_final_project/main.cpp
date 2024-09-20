@@ -1,16 +1,19 @@
 #include <wiringPi.h>
 #include <iostream>
 #include <unistd.h>
-#include <fcntl.h>
 #include <termios.h>
+#include <fcntl.h>
 #include <cstring>
 #include <cstdlib>
-#include "led.h"  // Include your LED header file
+
+#include "led.h"     // Include the header file for LED functions
+#include "camera.h"  // Include the header file for camera functions
 
 // Set up your GPIO pins for buttons, LEDs, etc.
-const int Button = 21; // GPIO 21
-const int LED = 4;     // GPIO 4
+const int Button = 21; // GPIO 21 for Button
+const int LED = 4;     // GPIO 4 for an additional LED if needed
 
+// Serial port setup for the thermal printer
 void setupSerial(int &serial_port) {
     serial_port = open("/dev/serial0", O_RDWR | O_NOCTTY);
     if (serial_port < 0) {
@@ -31,13 +34,13 @@ void setupSerial(int &serial_port) {
     cfsetispeed(&tty, B19200);
 
     // 8N1 (8 bits, no parity, 1 stop bit)
-    tty.c_cflag &= ~PARENB; // Clear parity bit
-    tty.c_cflag &= ~CSTOPB; // 1 stop bit
-    tty.c_cflag &= ~CSIZE;  // Clear data size setting
-    tty.c_cflag |= CS8;     // Set 8 data bits
+    tty.c_cflag &= ~PARENB;
+    tty.c_cflag &= ~CSTOPB;
+    tty.c_cflag &= ~CSIZE;
+    tty.c_cflag |= CS8;
 
-    tty.c_cflag &= ~CRTSCTS; // No hardware flow control
-    tty.c_cflag |= CREAD | CLOCAL; // Enable receiver
+    tty.c_cflag &= ~CRTSCTS;
+    tty.c_cflag |= CREAD | CLOCAL;
 
     tcflush(serial_port, TCIFLUSH);
     if (tcsetattr(serial_port, TCSANOW, &tty) != 0) {
@@ -46,20 +49,10 @@ void setupSerial(int &serial_port) {
     }
 }
 
-void sendText(int serial_port, const char* message) {
-    write(serial_port, message, strlen(message));
-}
-
-void printImageCommand(const char* image_path) {
-    // Print the image using `lp` with fit-to-page option
-    std::string cmd = "lp -o fit-to-page " + std::string(image_path);
-    system(cmd.c_str());
-}
-
 int main() {
-    wiringPiSetupGpio(); // Set up wiringPi
+    wiringPiSetupGpio();  // Set up wiringPi
     pinMode(Button, INPUT);
-    pullUpDnControl(Button, PUD_UP); // Enable internal pull-up resistor
+    pullUpDnControl(Button, PUD_UP); // Enable internal pull-up resistor for button
     pinMode(LED, OUTPUT);
 
     setup_LEDs();  // Set up LEDs for countdown
@@ -67,30 +60,30 @@ int main() {
     int serial_port;
     setupSerial(serial_port); // Set up UART serial communication with the thermal printer
 
+    setupCamera();  // Set up camera pins and perform any camera-related initialization
+
     while (true) {
         int button_state = digitalRead(Button);
         std::cout << button_state << std::endl;
 
         if (button_state == 0) {
-            count_down();  // Perform the LED countdown
+            count_down();  // Perform the LED countdown before taking the picture
 
-            // Capture image using raspistill
-            system("raspistill -n -t 200 -w 512 -h 384 -o /tmp/photo.jpg");
+            handleCameraShutter();  // Capture the image using raspistill and print it via lp
 
-            // Send the image to the thermal printer using `lp`
-            printImageCommand("/tmp/photo.jpg", "~/Downloads/cs50_duck.bmp");
+            // Send another image to the thermal printer (such as cs50_duck.bmp)
+            printImageCommand(serial_port, "~/Downloads/cs50_duck.bmp");
 
             // Wait until the button is released
             while (digitalRead(Button) == 0) {
-                usleep(100000); // Sleep for 100 ms
+                usleep(100000);  // Sleep for 100 ms
             }
             digitalWrite(LED, LOW);
         }
 
-        sleep(1); // Sleep for 1 second
+        sleep(1);  // Sleep for 1 second before checking the button state again
     }
 
-    // Close the serial port when done
-    close(serial_port);
+    close(serial_port);  // Close the serial port when done
     return 0;
 }
