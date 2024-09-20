@@ -5,6 +5,7 @@
 #include <termios.h>
 #include <cstring>
 #include <cstdlib>
+#include "led.h"  // Include your LED header file
 
 // Set up your GPIO pins for buttons, LEDs, etc.
 const int Button = 21; // GPIO 21
@@ -49,10 +50,9 @@ void sendText(int serial_port, const char* message) {
     write(serial_port, message, strlen(message));
 }
 
-void printImageCommand(int serial_port, const char* image_path) {
-    // Example of sending image data to the thermal printer
-    // You will need to convert the image into a format the printer supports
-    std::string cmd = "convert " + std::string(image_path) + " -resize 384x -monochrome pbm:- | cat > /dev/serial0";
+void printImageCommand(const char* image_path) {
+    // Print the image using `lp` with fit-to-page option
+    std::string cmd = "lp -o fit-to-page " + std::string(image_path);
     system(cmd.c_str());
 }
 
@@ -62,6 +62,8 @@ int main() {
     pullUpDnControl(Button, PUD_UP); // Enable internal pull-up resistor
     pinMode(LED, OUTPUT);
 
+    setup_LEDs();  // Set up LEDs for countdown
+
     int serial_port;
     setupSerial(serial_port); // Set up UART serial communication with the thermal printer
 
@@ -70,13 +72,13 @@ int main() {
         std::cout << button_state << std::endl;
 
         if (button_state == 0) {
-            digitalWrite(LED, HIGH);
+            count_down();  // Perform the LED countdown
 
             // Capture image using raspistill
             system("raspistill -n -t 200 -w 512 -h 384 -o /tmp/photo.jpg");
 
-            // Send the image to the thermal printer
-            printImageCommand(serial_port, "/tmp/photo.jpg");
+            // Send the image to the thermal printer using `lp`
+            printImageCommand("/tmp/photo.jpg", "~/Downloads/cs50_duck.bmp");
 
             // Wait until the button is released
             while (digitalRead(Button) == 0) {
