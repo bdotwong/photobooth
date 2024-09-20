@@ -11,7 +11,6 @@
 
 // Set up your GPIO pins for buttons, LEDs, etc.
 const int Button = 21; // GPIO 21 for Button
-const int LED = 4;     // GPIO 4 for an additional LED if needed
 
 // Serial port setup for the thermal printer
 void setupSerial(int &serial_port) {

@@ -1,4 +1,7 @@
 #include "camera.h"
+#include <iostream>
+#include <cstdlib>
+
 
 void flashLED(int pin, int times, int delay_ms) {
     for (int i = 0; i < times; ++i) {
@@ -35,6 +38,12 @@ void handleCameraShutter() {
         }
         digitalWrite(LED, LOW);
     }
+}
+
+void printImageCommand(int serial_port, const char* image_path) {
+    // Implement the function to print the image
+    std::string cmd = "lp " + std::string(image_path);
+    system(cmd.c_str());
 }
 
 void handleHaltButton() {
